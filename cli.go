@@ -28,7 +28,7 @@ Commands:
   serve     Run the server in the foreground
 
 Server flags (start, restart, serve, open):
-  -addr string         listen address (default "127.0.0.1:7777")
+  -addr string         listen address (default "prs.localhost:7777")
   -interval duration   GitHub poll interval (default 1m0s)
   -closed-days int     show PRs merged/closed in the last N days (default 7)
   -bots string         extra logins to treat as bots, comma-separated

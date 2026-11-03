@@ -20,7 +20,7 @@ Requires `gh auth login`.
 ## Usage
 
 ```sh
-github-overlay start     # run in the background on http://127.0.0.1:7777
+github-overlay start     # run in the background on http://prs.localhost:7777
 github-overlay open      # open in the browser (starts the server if needed)
 github-overlay status
 github-overlay logs -f
@@ -33,7 +33,7 @@ Flags for `start`, `restart`, `open` and `serve`:
 
 | Flag | Default | |
 |---|---|---|
-| `-addr` | `127.0.0.1:7777` | listen address |
+| `-addr` | `prs.localhost:7777` | listen address; a `*.localhost` name listens on both loopback addresses |
 | `-interval` | `1m` | GitHub poll interval |
 | `-closed-days` | `7` | how far back "Recently closed" goes |
 | `-bots` | `igloo-code-reviewer,chatgpt-codex-connector,codex,copilot-pull-request-reviewer` | logins counted as bots, in addition to GitHub App accounts |
