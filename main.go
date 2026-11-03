@@ -21,6 +21,9 @@ import (
 //go:embed index.html
 var indexHTML []byte
 
+//go:embed favicon.svg
+var faviconSVG []byte
+
 type server struct {
 	client     *client
 	bots       map[string]bool
@@ -125,6 +128,10 @@ func serve(o *serveOpts, pidFile bool) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/prs", s.handlePRs)
+	mux.HandleFunc("/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Write(faviconSVG)
+	})
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintln(w, "ok") })
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
