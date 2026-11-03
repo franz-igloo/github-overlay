@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PR Overlay</title>
-<link rel="icon" href="data:,">
+<link rel="icon" id="favicon" href="data:,">
 <style>
 :root {
   --bg: #ffffff; --bg-subtle: #f6f8fa; --border: #d0d7de; --border-muted: #e5e8eb;
@@ -256,8 +256,16 @@ function row(p, bundleMembers) {
   </div>`;
 }
 
+// Pull-request icon; a red dot means something on the Mine tab needs action.
+function setFavicon(alert) {
+  const dot = alert ? `<circle cx="12.5" cy="3.5" r="3.5" fill="#f85149"/>` : "";
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#2da44e" d="${P.OPEN}"/>${dot}</svg>`;
+  document.getElementById("favicon").href = "data:image/svg+xml," + encodeURIComponent(icon);
+}
+
 function render() {
   if (!data) return;
+  setFavicon((data.sections.mine || []).some(k => FILTERS.action.fn(data.prs[k])));
   const owners = {};
   Object.values(data.prs).forEach(p => { const o = p.repo.split("/")[0].toLowerCase(); owners[o] = (owners[o] || 0) + 1; });
   mainOwner = Object.entries(owners).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
