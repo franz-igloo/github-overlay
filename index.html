@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR Overlay</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  --bg: #ffffff; --bg-subtle: #f6f8fa; --border: #d0d7de; --border-muted: #e5e8eb;
+  --fg: #1f2328; --fg-muted: #59636e; --link: #0969da;
+  --green: #1a7f37; --red: #d1242f; --yellow: #9a6700; --purple: #8250df; --gray: #818b98;
+  --blue-bg: #ddf4ff; --gray-bg: #eff2f5; --purple-bg: #fbefff; --purple-border: #d8b9ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --bg-subtle: #151b23; --border: #3d444d; --border-muted: #262c36;
+    --fg: #f0f6fc; --fg-muted: #9198a1; --link: #4493f8;
+    --green: #3fb950; --red: #f85149; --yellow: #d29922; --purple: #ab7df8; --gray: #656c76;
+    --blue-bg: #121d2f; --gray-bg: #212830; --purple-bg: #1d1730; --purple-border: #6e40c9;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
+a { color: inherit; text-decoration: none; }
+svg { display: block; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.meta { color: var(--fg-muted); font-size: 12px; margin-left: auto; text-align: right; }
+.iconbtn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: var(--fg-muted);
+  background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-size: 16px; }
+.iconbtn:hover { background: var(--bg-subtle); border-color: var(--border); color: var(--fg); }
+.iconbtn.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error { color: var(--red); font-size: 13px; margin-bottom: 8px; }
+
+.bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.tabs { display: flex; overflow-x: auto; }
+.tab { font: inherit; background: none; border: none; padding: 8px 12px; cursor: pointer; white-space: nowrap;
+  color: var(--fg-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab:hover { color: var(--fg); }
+.tab.active { color: var(--fg); font-weight: 600; border-bottom-color: #fd8c73; }
+.n { color: var(--fg-muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+.filters { display: flex; gap: 2px; flex-wrap: wrap; padding-bottom: 6px; }
+.chip { font: inherit; font-size: 12px; background: none; border: none; border-radius: 6px; padding: 3px 8px;
+  color: var(--fg-muted); cursor: pointer; }
+.chip:hover { background: var(--bg-subtle); color: var(--fg); }
+.chip.active { background: var(--blue-bg); color: var(--link); }
+
+.cols, .row { display: grid; grid-template-columns: 16px minmax(0, 1fr) 24px 104px 48px 40px; gap: 0 12px; align-items: center; }
+.cols { padding: 0 12px 4px; font-size: 11px; color: var(--fg-muted); }
+.cols span:nth-child(n+3) { text-align: center; }
+.cols span:last-child { text-align: right; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.card > * + * { border-top: 1px solid var(--border-muted); }
+.empty { padding: 32px; text-align: center; color: var(--fg-muted); border: 1px dashed var(--border); border-radius: 6px; }
+
+.row { padding: 8px 12px; }
+.row:hover { background: var(--bg-subtle); }
+.bundle { border-color: var(--purple-border); }
+.bundle-head { display: flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+  color: var(--purple); background: var(--purple-bg); }
+.bundle-head .n { color: var(--purple); opacity: .8; }
+.bundle > .bundle-head + .row { border-top-color: var(--purple-border); }
+
+.title { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title:hover { color: var(--link); }
+.sub { font-size: 12px; color: var(--fg-muted); display: flex; flex-wrap: wrap; gap: 0 6px; }
+.sub > * + *::before { content: "·"; margin-right: 6px; color: var(--gray); }
+.sub a:hover { color: var(--link); }
+.add { color: var(--green); } .del { color: var(--red); } .warn { color: var(--red); }
+.cell { display: flex; justify-content: center; align-items: center; font-size: 12px; color: var(--fg-muted); }
+.cell.age { justify-content: flex-end; }
+
+.avatars { display: flex; justify-content: center; }
+.av { position: relative; width: 22px; height: 22px; border-radius: 50%; margin-left: -4px; flex: none;
+  background: var(--gray-bg) center/cover; box-shadow: 0 0 0 2px var(--bg);
+  display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--fg-muted); }
+.av:first-child { margin-left: 0; }
+.av img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; }
+.av::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--ring, transparent); }
+.av.requested { --ring: var(--yellow); } .av.requested::after { border-style: dotted; }
+.av.approved { --ring: var(--green); }
+.av.changes { --ring: var(--red); }
+.av.commented { --ring: var(--gray); }
+.more { font-size: 11px; margin-left: 4px; color: var(--fg-muted); }
+.none { font-size: 11px; color: var(--yellow); }
+.threads { display: flex; align-items: center; gap: 3px; }
+.threads.hot { color: var(--red); font-weight: 600; }
+.bot { color: var(--gray); font-weight: 400; }
+
+@media (max-width: 640px) {
+  .cols { display: none; }
+  .row { grid-template-columns: 16px minmax(0, 1fr) auto auto; row-gap: 4px; }
+  .row .cell.ci { grid-column: 3; grid-row: 1; }
+  .row .cell.rev { grid-column: 2; justify-content: flex-start; }
+  .row .cell.thr, .row .cell.age { grid-row: 2; }
+  .title { white-space: normal; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Pull requests</h1>
+    <span class="meta" id="meta"></span>
+    <button class="iconbtn" id="refresh" title="Refresh now (r)">↻</button>
+  </header>
+  <div id="error"></div>
+  <div class="bar">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="filters" id="filters"></div>
+  </div>
+  <div class="cols"><span></span><span></span><span title="CI">CI</span><span>Reviews</span><span title="Unresolved threads">Threads</span><span>Age</span></div>
+  <div class="list" id="list"><div class="empty">Loading pull requests…</div></div>
+</div>
+<script>
+const TABS = [
+  { id: "mine", label: "Mine" },
+  { id: "review", label: "To review" },
+  { id: "closed", label: "Closed" },
+];
+
+const isOpen = p => p.state === "OPEN";
+const ciFailed = p => p.ci.state === "FAILURE" || p.ci.state === "ERROR";
+const humanReviews = p => p.reviews.filter(r => !r.bot);
+const noReviewer = p => isOpen(p) && !p.requestedReviewers.length && !humanReviews(p).length;
+
+// Shown on the Mine tab only; chips with no matches are hidden.
+const FILTERS = {
+  all:     { label: "All", fn: () => true },
+  action:  { label: "Needs action", fn: p => ciFailed(p) || p.changesRequested || p.humanThreads > 0 || p.conflicting },
+  waiting: { label: "Waiting on review", fn: p => p.requestedReviewers.length > 0 },
+  noRev:   { label: "No reviewer", fn: noReviewer },
+  ready:   { label: "Ready to merge", fn: p => p.reviewDecision === "APPROVED" && p.ci.state === "SUCCESS" && !p.conflicting && !p.humanThreads },
+  drafts:  { label: "Drafts", fn: p => p.state === "DRAFT" },
+};
+
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let data = null;
+let tab = store.get("tab", "mine");
+let filter = store.get("filter", "all");
+if (!TABS.some(t => t.id === tab)) tab = "mine";
+if (!FILTERS[filter]) filter = "all";
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return "now";
+  if (s < 3600) return Math.floor(s / 60) + "m";
+  if (s < 86400) return Math.floor(s / 3600) + "h";
+  return Math.floor(s / 86400) + "d";
+}
+
+// Octicon paths (MIT, GitHub).
+const P = {
+  OPEN:   "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z",
+  DRAFT:  "M3.25 1A2.25 2.25 0 0 1 4 5.372v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.251 2.251 0 0 1 3.25 1Zm9.5 14a2.25 2.25 0 1 1 0-4.5 2.25 2.25 0 0 1 0 4.5ZM2.5 3.25a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0ZM3.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm9.5 0a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM14 7.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0-4.25a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z",
+  MERGED: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218ZM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM5 3.25a.75.75 0 1 0 0 .005V3.25Z",
+  CLOSED: "M3.25 1A2.25 2.25 0 0 1 4 5.372v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.251 2.251 0 0 1 3.25 1Zm9.5 5.5a.75.75 0 0 1 .75.75v3.378a2.251 2.251 0 1 1-1.5 0V7.25a.75.75 0 0 1 .75-.75Zm-2.03-5.273a.75.75 0 0 1 1.06 0l.97.97.97-.97a.748.748 0 0 1 1.265.332.75.75 0 0 1-.205.729l-.97.97.97.97a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-.97-.97-.97.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l.97-.97-.97-.97a.75.75 0 0 1 0-1.06ZM2.5 3.25a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0ZM3.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm9.5 0a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z",
+  check:  "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z",
+  x:      "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z",
+  dot:    "M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z",
+  link:   "m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z",
+  comment:"M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z",
+};
+const STATE_COLOR = { OPEN: "var(--green)", DRAFT: "var(--gray)", MERGED: "var(--purple)", CLOSED: "var(--red)" };
+const svg = (path, color, size = 16) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="${color}"><path d="${path}"/></svg>`;
+
+// Drop the owner when it's the one most PRs share, so rows read "rent-api #4071".
+let mainOwner = "";
+function repoLabel(repo) {
+  const [owner, name] = repo.split("/");
+  return owner.toLowerCase() === mainOwner ? name : repo;
+}
+const DEFAULT_BASES = new Set(["main", "master", "develop", "staging"]);
+
+function ciCell(p) {
+  if (tab === "closed") return "";
+  const ci = p.ci, url = p.url + "/checks";
+  if (!ci.state) return `<span title="No checks">–</span>`;
+  if (ciFailed(p)) {
+    const names = ci.failed.map(c => "✕ " + c.name).join("\n");
+    const href = ci.failed.length === 1 && ci.failed[0].url ? ci.failed[0].url : url;
+    return `<a href="${esc(href)}" target="_blank" title="${esc(`${ci.failed.length} of ${ci.total} failed\n${names}`)}">${svg(P.x, "var(--red)")}</a>`;
+  }
+  if (ci.state === "PENDING" || ci.state === "EXPECTED")
+    return `<a href="${esc(url)}" target="_blank" title="${ci.pending.length} of ${ci.total} running">${svg(P.dot, "var(--yellow)")}</a>`;
+  return `<a href="${esc(url)}" target="_blank" title="${ci.total} checks passed">${svg(P.check, "var(--green)")}</a>`;
+}
+
+const REVIEW_CLASS = { APPROVED: "approved", CHANGES_REQUESTED: "changes", COMMENTED: "commented" };
+const REVIEW_TEXT = { APPROVED: "approved", CHANGES_REQUESTED: "requested changes", COMMENTED: "commented", requested: "review requested" };
+
+function avatar(login, kind) {
+  const team = login.startsWith("@");
+  // The initial sits under the image and shows if the avatar fails to load.
+  const img = team ? "" : `<img src="https://avatars.githubusercontent.com/${encodeURIComponent(login)}?s=44" alt="" onerror="this.remove()">`;
+  const label = team ? "@" : login[0].toUpperCase();
+  const state = kind === "requested" ? "requested" : Object.keys(REVIEW_CLASS).find(k => REVIEW_CLASS[k] === kind);
+  return `<span class="av ${kind}" title="${esc(login)}: ${REVIEW_TEXT[state]}">${label}${img}</span>`;
+}
+
+function reviewCell(p) {
+  const people = [
+    ...humanReviews(p).filter(r => REVIEW_CLASS[r.state]).map(r => [r.login, REVIEW_CLASS[r.state]]),
+    ...p.requestedReviewers.map(l => [l, "requested"]),
+  ];
+  if (!people.length) return noReviewer(p) && tab !== "closed" ? `<span class="none">none</span>` : "";
+  const shown = people.slice(0, 4).map(([l, k]) => avatar(l, k)).join("");
+  const more = people.length > 4 ? `<span class="more">+${people.length - 4}</span>` : "";
+  return `<div class="avatars">${shown}${more}</div>`;
+}
+
+function threadCell(p) {
+  if (!p.humanThreads && !p.botThreads) return "";
+  const title = [p.humanThreads && `${p.humanThreads} from people`, p.botThreads && `${p.botThreads} from bots`].filter(Boolean).join(", ");
+  const n = p.humanThreads ? `${p.humanThreads}${p.botThreads ? `<span class="bot">+${p.botThreads}</span>` : ""}` : `<span class="bot">${p.botThreads}</span>`;
+  return `<a class="threads ${p.humanThreads ? "hot" : ""}" href="${esc(p.url)}/files" target="_blank" title="Unresolved: ${title}">${svg(P.comment, "currentColor", 12)}${n}</a>`;
+}
+
+function row(p, bundleMembers) {
+  const sub = [`<span>${esc(repoLabel(p.repo))} #${p.number}</span>`];
+  if (tab === "review") sub.push(`<span>${esc(p.author)}</span>`);
+  if (!DEFAULT_BASES.has(p.base)) sub.push(`<span title="Base branch">on ${esc(p.base)}</span>`);
+  sub.push(`<span><span class="add">+${p.additions}</span> <span class="del">−${p.deletions}</span></span>`);
+  if (p.conflicting) sub.push(`<span class="warn">conflicts</span>`);
+  // Links already visible in this bundle are noise; show only the rest.
+  const ext = p.links.filter(k => !bundleMembers.has(k) && data.prs[k]);
+  if (ext.length) sub.push(`<span>→ ${ext.map(k => {
+    const t = data.prs[k];
+    return `<a href="${esc(t.url)}" target="_blank">${esc(repoLabel(t.repo))} #${t.number}</a> ${t.state.toLowerCase()}`;
+  }).join(", ")}</span>`);
+  const when = tab === "closed" ? p.closedAt : p.updatedAt;
+  return `<div class="row">
+    <span title="${p.state.toLowerCase()}">${svg(P[p.state] || P.OPEN, STATE_COLOR[p.state])}</span>
+    <div style="min-width:0">
+      <a class="title" href="${esc(p.url)}" target="_blank" title="${esc(p.title + "\n" + p.head + " → " + p.base)}">${esc(p.title)}</a>
+      <div class="sub">${sub.join("")}</div>
+    </div>
+    <div class="cell ci">${ciCell(p)}</div>
+    <div class="cell rev">${reviewCell(p)}</div>
+    <div class="cell thr">${threadCell(p)}</div>
+    <div class="cell age" title="${esc(new Date(when).toLocaleString())}">${ago(when)}</div>
+  </div>`;
+}
+
+function render() {
+  if (!data) return;
+  const owners = {};
+  Object.values(data.prs).forEach(p => { const o = p.repo.split("/")[0].toLowerCase(); owners[o] = (owners[o] || 0) + 1; });
+  mainOwner = Object.entries(owners).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+  document.getElementById("error").innerHTML = data.error ? `<div class="error">⚠ ${esc(data.error)}</div>` : "";
+  document.getElementById("meta").textContent =
+    data.fetchedAt ? `updated ${ago(data.fetchedAt) === "now" ? "just now" : ago(data.fetchedAt) + " ago"}` : "loading…";
+  document.getElementById("meta").title = `${data.viewer || ""} · ${data.rateRemaining} API points left`;
+
+  document.getElementById("tabs").innerHTML = TABS.map(t =>
+    `<button class="tab ${t.id === tab ? "active" : ""}" data-tab="${t.id}">${t.label}<span class="n">${(data.sections[t.id] || []).length}</span></button>`
+  ).join("");
+
+  const prs = (data.sections[tab] || []).map(k => data.prs[k]);
+  const useFilters = tab === "mine";
+  document.getElementById("filters").innerHTML = useFilters ? Object.entries(FILTERS).map(([id, f]) => {
+    const n = prs.filter(f.fn).length;
+    if (!n && id !== filter && id !== "all") return "";
+    return `<button class="chip ${id === filter ? "active" : ""}" data-filter="${id}">${f.label}${id === "all" ? "" : `<span class="n">${n}</span>`}</button>`;
+  }).join("") : "";
+
+  const shown = prs.filter(useFilters ? FILTERS[filter].fn : () => true);
+
+  // Unconnected PRs share one card at the top; each bundle follows in its
+  // own card. Both keep the section's order (most recently updated first).
+  const loose = [], bundles = [], done = new Set();
+  for (const p of shown) {
+    if (done.has(p.key)) continue;
+    done.add(p.key);
+    if (!p.bundle) { loose.push(row(p, new Set([p.key]))); continue; }
+    const members = shown.filter(q => q.bundle === p.bundle);
+    members.forEach(q => done.add(q.key));
+    const all = new Set(data.bundles[p.bundle]);
+    const hidden = all.size - members.length;
+    bundles.push(`<div class="card bundle"><div class="bundle-head">${svg(P.link, "currentColor", 12)}Connected<span class="n">${all.size} PRs${hidden ? `, ${hidden} not shown` : ""}</span></div>${members.map(q => row(q, all)).join("")}</div>`);
+  }
+  const cards = [...(loose.length ? [`<div class="card">${loose.join("")}</div>`] : []), ...bundles];
+  document.getElementById("list").innerHTML = cards.join("") || `<div class="empty">Nothing here.</div>`;
+}
+
+async function load(force) {
+  const btn = document.getElementById("refresh");
+  if (force) btn.classList.add("spin");
+  try {
+    const r = await fetch("/api/prs" + (force ? "?refresh=1" : ""));
+    data = await r.json();
+  } catch (e) {
+    data = data || { prs: {}, sections: {}, bundles: {} };
+    data.error = "Overlay server unreachable: " + e.message;
+  }
+  btn.classList.remove("spin");
+  render();
+}
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  tab = b.dataset.tab; store.set("tab", tab); render();
+});
+document.getElementById("filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-filter]"); if (!b) return;
+  filter = b.dataset.filter; store.set("filter", filter); render();
+});
+document.getElementById("refresh").addEventListener("click", () => load(true));
+document.addEventListener("keydown", e => {
+  if (e.key === "r" && !e.metaKey && !e.ctrlKey && e.target === document.body) load(true);
+});
+
+load();
+setInterval(load, 30000);
+setInterval(render, 30000); // keep relative times fresh
+</script>
+</body>
+</html>
